@@ -1,0 +1,136 @@
+package com.dossis.curso3semana5.services;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.AsyncTask;
+
+import java.util.Properties;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+public class JavaMailAPI extends AsyncTask<Void,Void,Void>  {
+
+
+    //Variables
+    private final Context mContext;
+
+    private final String mEmail;
+    private final String mSubject;
+    private final String mMessage;
+
+    private ProgressDialog mProgressDialog;
+
+    private final OnTaskCompleted listener;
+    private boolean result;
+    //Constructor
+    public JavaMailAPI(Context mContext, String mEmail, String mSubject, String mMessage) {
+        this.mContext = mContext;
+        this.mEmail = mEmail;
+        this.mSubject = mSubject;
+        this.mMessage = mMessage;
+        this.listener= (OnTaskCompleted) mContext;
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+        //Show progress dialog while sending email
+        mProgressDialog = ProgressDialog.show(mContext,"Sending message", "Please wait...",false,false);
+        result=false;
+    }
+
+    @Override
+    protected void onPostExecute(Void aVoid) {
+        super.onPostExecute(aVoid);
+        //Dismiss progress dialog when message successfully send
+        mProgressDialog.dismiss();
+
+        //Show success toast
+        listener.onTaskCompleted(result);
+
+    }
+
+    @Override
+    protected Void doInBackground(Void... params) {
+        //Creating properties
+        Properties props = new Properties();
+
+        //Configuring properties for gmail
+        //If you are not using gmail you may need to change the values
+        /*
+        //GMAIL
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.socketFactory.port", "465");
+        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.port", "465");*/
+
+        //OUTLOOK
+        props.put("mail.smtp.host", "smtp-mail.outlook.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.starttls.enable","true");
+        props.put("mail.smtp.auth", "true");
+
+        //Creating a new session
+        //Authenticating the password
+        Session mSession = Session.getDefaultInstance(props,
+                new javax.mail.Authenticator() {
+                    //Authenticating the password
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(Utils.EMAIL, Utils.PASSWORD);
+                    }
+                });
+
+        try {
+            //Creating MimeMessage object
+            MimeMessage mm = new MimeMessage(mSession);
+
+            //Setting sender address
+            mm.setFrom(new InternetAddress(Utils.EMAIL));
+            //Adding receiver
+            mm.addRecipient(Message.RecipientType.TO, new InternetAddress(mEmail));
+            //Adding subject
+            mm.setSubject(mSubject);
+            //Adding message
+            mm.setText(mMessage);
+            //Sending email
+            Transport.send(mm);
+
+//            BodyPart messageBodyPart = new MimeBodyPart();
+//
+//            messageBodyPart.setText(message);
+//
+//            Multipart multipart = new MimeMultipart();
+//
+//            multipart.addBodyPart(messageBodyPart);
+//
+//            messageBodyPart = new MimeBodyPart();
+//
+//            DataSource source = new FileDataSource(filePath);
+//
+//            messageBodyPart.setDataHandler(new DataHandler(source));
+//
+//            messageBodyPart.setFileName(filePath);
+//
+//            multipart.addBodyPart(messageBodyPart);
+
+//            mm.setContent(multipart);
+            result=true;
+        } catch (MessagingException e) {
+            e.printStackTrace();
+          result=false;
+
+        }
+        return null;
+    }
+
+
+    public interface OnTaskCompleted{
+        void onTaskCompleted(boolean result);
+    }
+}
